@@ -2,11 +2,12 @@ import os
 from flask import Flask, render_template, request, jsonify, make_response
 from base64 import b64encode
 import json, requests, re
-from kaldialign import align
+#from kaldialign import align
 from datetime import datetime
 import librosa
 import soundfile as sf
 import subprocess
+from compute_gop import compute_mispronounce
 
 app = Flask(__name__)
 
@@ -68,7 +69,7 @@ def upload():
         if re.match("[\uac00-\ud7a3]", char):
             cleaned_trans += char
 
-    google_matched_text = align(cleaned_canonical, cleaned_trans, "*")
+    google_matched_text = '' #align(cleaned_canonical, cleaned_trans, "*")
 
     # Count the number of correct characters
     correct = 0
@@ -105,9 +106,11 @@ def upload():
     os.system("rm -r /home/sadm/Desktop/kaldi/egs/zeroth_korean/s5/data/new")
     print('Removed data/new')
 
-    # Execute run_test_audio_gmm.sh
+    # Execute run_test_audio_gmm.sh and extract test ivectors and then compute gop
     os.chdir("../kaldi/egs/zeroth_korean/s5")
     subprocess.call("./run_test_audio_gmm.sh")
+    subprocess.call("./extract_test_ivectors_oneaudio.sh")
+    subprocess.call("./d_run_gop_oneaudio.sh")
     os.chdir("../../../../korean-korkor")
     print('Done executing bash')
 
@@ -142,7 +145,7 @@ def upload():
         if re.match("[\uac00-\ud7a3]", char):
             cleaned_trans += char
 
-    matched_text = align(cleaned_canonical, cleaned_trans, "*")
+    matched_text = '' #align(cleaned_canonical, cleaned_trans, "*")
 
     # Count the number of correct characters
     correct = 0
@@ -154,19 +157,24 @@ def upload():
     # Calculate WPM and words correct per minute
     wpm = len(cleaned_trans)/(stats['duration']/60)
     wcpm = correct/(stats['duration']/60)
-    
-    # Generate phonemes from characters
-    os.chdir("../kaldi/egs/zeroth_korean/s5/KoG2P-master-cs4347")
-    subprocess.call(["python", "get_phonemes.py", "../test_prod/new/003/117/117_003.trans.txt", "../exp/tri4/decode_tgsmall_new/one_best_transcription.txt"])
 
-    canonical_phoneme = open("output1.txt", "r").read()
-    transcribed_phoneme = open("output2.txt", "r").read()
+    # Map phone to corresponding GOP score
+    gop_file = "../kaldi/egs/zeroth_korean/s5/exp/gop_new/gop.1.txt"
+    pure_phone_file = "../kaldi/egs/zeroth_korean/s5/exp/gop_new/phones-pure.txt"
+    phone_list, gop_list = compute_mispronounce(gop_file,pure_phone_file)
+
+    # Generate phonemes from characters
+    # os.chdir("../kaldi/egs/zeroth_korean/s5/KoG2P-master-cs4347")
+    # subprocess.call(["python", "get_phonemes.py", "../test_prod/new/003/117/117_003.trans.txt", "../exp/tri4/decode_tgsmall_new/one_best_transcription.txt"])
+
+    # canonical_phoneme = open("output1.txt", "r").read()
+    # transcribed_phoneme = open("output2.txt", "r").read()
 
     os.chdir("../../../../../korean-korkor")
-    print('Done getting phonemes')
+    # print('Done getting phonemes')
 
     # Match phonemes
-    matched_phonemes = align(canonical_phoneme.split(), transcribed_phoneme.split(), "*")
+    # matched_phonemes = align(canonical_phoneme.split(), transcribed_phoneme.split(), "*")
 
     to_return = {
         "google_transcription": google_trans,
@@ -182,8 +190,10 @@ def upload():
         "PTR": stats["PTR"],
         "WPM": wpm,
         "WCPM": wcpm,
-        "matched_phonemes": matched_phonemes,
-        "phoneme_transcription": transcribed_phoneme
+        "phones": phone_list,
+        "gop": gop_list
+     #   "matched_phonemes": matched_phonemes,
+     #   "phoneme_transcription": transcribed_phoneme
     }
     print(to_return)
 

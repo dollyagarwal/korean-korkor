@@ -229,11 +229,22 @@ function showResults(json) {
 		}
 	}
 
-	var phonemeList = json.matched_phonemes;
-	var finalPhoneme = '<strong>Original text: </strong>';
+//	var phonemeList = json.matched_phonemes;
+	var phonemeList = json.phones;
+	var gopList = json.gop;
+	var finalPhoneme = '<strong>GOP values per phoneme: </strong>';
+
+    for (let i = 0; i < phonemeList.length; i++) {
+		var pair = phonemeList[i] + ' : ' + gopList[i] + ' '
+		if (gopList[i]>=-5.0) {
+			finalPhoneme += '<strong class="text-success">' + pair + ' </strong>'
+		} else {
+			finalPhoneme += '<strong class="text-danger">' + pair + '</strong>'
+		}
+	}
 
 	// Process the text
-	for (let i = 0; i < phonemeList.length; i++) {
+/*	for (let i = 0; i < phonemeList.length; i++) {
 		var pair = phonemeList[i]
 		if (pair[0] == pair[1]) {
 			finalPhoneme += '<strong class="text-success">' + pair[0] + ' </strong>'
@@ -241,7 +252,7 @@ function showResults(json) {
 			finalPhoneme += '<strong class="text-danger">' + pair[0] + '</strong>'
 		}
 	}
-
+*/
 	document.getElementById("instruction").innerHTML = '';
 	document.getElementById("instruction2").innerHTML = '';
 	document.getElementById("recordingContainer").innerHTML = '';
@@ -250,7 +261,7 @@ function showResults(json) {
 	document.getElementById("user-transcription").innerHTML = '<strong>What you read: </strong>' + json.transcription;
 	
 	document.getElementById("transcription-phoneme").innerHTML = finalPhoneme;
-	document.getElementById("user-transcription-phoneme").innerHTML = '<strong>What you read: </strong>' + json.phoneme_transcription;
+//	document.getElementById("user-transcription-phoneme").innerHTML = '<strong>What you read: </strong>' + json.phoneme_transcription;
 
 	document.getElementById("ros").innerHTML = '<strong>Rate of Speech: </strong>' + Math.round(json.ROS * 100) / 100;
 	document.getElementById("ar").innerHTML = '<strong>Articulation Rate: </strong>' + Math.round(json.AR * 100) / 100;
