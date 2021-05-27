@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, jsonify, make_response
 from base64 import b64encode
 import json, requests, re
-#from kaldialign import align
+from kaldialign import align
 from datetime import datetime
 import librosa
 import soundfile as sf
@@ -69,7 +69,7 @@ def upload():
         if re.match("[\uac00-\ud7a3]", char):
             cleaned_trans += char
 
-    google_matched_text = '' #align(cleaned_canonical, cleaned_trans, "*")
+    google_matched_text = align(cleaned_canonical, cleaned_trans, "*")
 
     # Count the number of correct characters
     correct = 0
@@ -145,7 +145,7 @@ def upload():
         if re.match("[\uac00-\ud7a3]", char):
             cleaned_trans += char
 
-    matched_text = '' #align(cleaned_canonical, cleaned_trans, "*")
+    matched_text = align(cleaned_canonical, cleaned_trans, "*")
 
     # Count the number of correct characters
     correct = 0
